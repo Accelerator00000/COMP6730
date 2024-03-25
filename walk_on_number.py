@@ -1,0 +1,227 @@
+# coding: utf-8
+# COMP6730 Project - 1 Walk on number
+
+import matplotlib.pyplot as plt
+import math
+
+# Task 1: Function1: period_counter()
+def period_counter(pairs: tuple[int, int], base: int) -> int:
+    # calculate the numerator and denominator of the rational number
+    numerator, denominator = min(pairs), max(pairs)
+    # keep track of the remainders seen so far
+    remainders = []
+    # repeat the division process until we reach a remainder we've seen before
+    while numerator not in remainders: # because remainder will be the new numerator we just use numerator as the name
+        remainders.append(numerator)
+        numerator = numerator * base % denominator
+    # if the remainder is 0, the expansion is finite and the period is 1
+    if numerator == 0:
+        return 1
+    # if the remainder is not 0, the expansion is infinite and the period is the length of the repeating block
+    period_start = remainders.index(numerator)
+    period_length = len(remainders) - period_start
+    return period_length
+
+def test_period_counter():
+    print("test with 71/495 base on 4")
+    assert period_counter((71,495),4) == 30
+    print("Pass!\ntest with 117/151 base on 10")
+    assert period_counter((117,151),10) == 75
+    print("Pass!\ntest with 7/11 base on 4")
+    assert period_counter((7,11),4) == 5
+    print("Pass!\ntest with 2/7 base on 4")
+    assert period_counter((2,7),4) == 3
+    print("Pass!\nAll tests passed")
+
+# Task 2: Function2: nstep_sequence()
+def nstep_sequence(pairs: tuple[int, int], base: int, step: int):
+    numerator, denominator = min(pairs), max(pairs)
+    digits = []
+    for i in range(step):
+        digit = numerator * base // denominator
+        digits.append(digit)
+        numerator = numerator * base % denominator
+    return digits
+
+def test_nstep_sequence():
+    print("test 7/11 8 step expansion base on 10")
+    assert nstep_sequence((7,11),10,8) == [6, 3, 6, 3, 6, 3, 6, 3]
+    print("Pass!\ntest with 117/151 12 step expansion base on 10")
+    assert nstep_sequence((117,151),10,12) == [7, 7, 4, 8, 3, 4, 4, 3, 7, 0, 8, 6]
+    print("Pass!\ntest with 7/11 7 step expansion base on 4")
+    assert nstep_sequence((7,11),4,7) == [2, 2, 0, 2, 3, 2, 2]
+    print("Pass!\ntest with 71/495 12 step expansion base on 4")
+    assert nstep_sequence((71,495),4,12) == [0, 2, 1, 0, 2, 3, 2, 0, 0, 1, 3, 0]
+    print("Pass!\nAll tests passed")
+
+# Task 3: Draw a plot
+def draw_a_walk():
+    # Initialize the starting point to (0, 0)
+    x, y = 0, 0
+    path = [(x, y)]
+    # Generate sequence for Q walk
+    a = 1049012271677499437486619280565448601617567358491560876166848380843144358447252875551629247027759555570453715679313058783247729772021770818187965906373657674879814228013285920278610192581409571357487047122902674651513128059541953997504202061380373822338959713391954
+    b = 1612226962694290912940490066273549214229880755725468512353395718465191353017348814314017504539969445479353012064383327267097007933052629203035092097360045095545613659664932507839146477284016238565137429529453089612268152748875615658076162410788075184599421938774835
+    tesq = nstep_sequence((a,b), 4, period_counter((a,b),4))
+    # Generate path digit by digit
+    for val in tesq:
+        if val == 0:
+            x += 1
+        elif val == 1:
+            y += 1
+        elif val == 2:
+            x -= 1
+        elif val == 3:
+            y -= 1
+        path.append((x, y))
+    x_coords, y_coords = zip(*path)
+    plt.plot(x_coords, y_coords)
+    plt.title("The walk of Q")
+    plt.show()
+
+# Task 4: Function3: reduction()
+def reduction(prefix: tuple[int], period: tuple[int], base: int) -> tuple[int, int]:
+    # Calculate the value of prefix and period
+    prefix_value = sum(d * base**i for i, d in enumerate(reversed(prefix)))
+    period_value = sum(d * base**i for i, d in enumerate(reversed(period)))
+    # Calculate the denominator
+    denominator = base**len(prefix) * (base**len(period) - 1)
+    # Calculate the numerator
+    numerator = prefix_value * (base**len(period) - 1) + period_value
+    # Find the greatest common divisor and divide numerator and denominator by it
+    divisor = math.gcd(numerator, denominator)
+    numerator //= divisor
+    denominator //= divisor
+    return (numerator, denominator)
+
+def test_reduction():
+    print("test prefix=(),period=(6,3) base on 10")
+    assert reduction((),(6,3),10) == (7, 11)
+    print("Pass!\ntest prefix=(1,1),period=(3,) base on 10")
+    assert reduction((1,1),(3,),10) == (17, 150)
+    print("Pass!\ntest prefix=(0,5),period=(0, 5, 5, 2, 0, 2, 3, 4, 1, 3) base on 6")
+    assert reduction((0,5),(0, 5, 5, 2, 0, 2, 3, 4, 1, 3),6) == (71, 495)
+    print("Pass!\nAll tests passed")
+
+# Task 5: Draw something
+def draw_a_x():
+    heart = tuple("22121212121200030303030310101010100023232323232030303030302221212121223232323222010101010100")
+    heartseq = tuple(int(el) for el in heart)
+    a,b = reduction((),heartseq,4)
+    print("this pattern is generated by:\n",a,"\n/\n",b)
+    
+    dir_map = {0: "east", 1: "north", 2: "west", 3: "south"}
+    x, y = 0, 0
+    path = [(x, y)]
+    for val in heartseq:
+        direction = dir_map[val]
+        if direction == "east":
+            x += 1
+        elif direction == "north":
+            y += 1
+        elif direction == "west":
+            x -= 1
+        elif direction == "south":
+            y -= 1
+        path.append((x, y))
+    x_coords, y_coords = zip(*path)
+    colors = [i for i in range(len(path))]
+    plt.scatter(x_coords, y_coords,c=colors,cmap='winter', marker='o',s=500)
+    plt.title("X Walk")
+    plt.show()
+    
+def interact():
+    notice = """
+    Available functions:
+    1.period calculating function;
+    2.nstep expansion generating function;
+    3.rational number lowest form expression finding function;
+    4.back to main menu;
+    5.quit.
+    """
+    while 1==1:
+        print(notice)
+        selection = int(input("Which function do you want to play with?"))
+        if selection in [1,2]:
+            pair = input("Provide rational number M/N by enter M and N, seperate by ',' ")
+            pairt = tuple(map(int, pair.split(',')))
+            assert len(pairt)== 2
+            base = input("You want the number expanded base on?")
+            basei = int(base)
+            if selection == 1:
+                period_length = period_counter(pairt, basei)
+                print(period_length)
+            elif selection == 2:
+                step = input("How many step you want to calculate?")
+                stepi = int(step)
+                nstep_seq = nstep_sequence(pairt, basei, stepi)
+                print(nstep_seq)
+        elif selection == 3:
+            prefix = input("Provide prefix, seperate by ',', if there's no prefix, input n ")
+            if prefix == "n":
+                prefixt = ()
+            else:
+                prefixt = tuple(map(int, prefix.split(',')))
+            period = input("Provide period, seperate by ',' ")
+            periodt = tuple(map(int, period.split(',')))
+            base = input("You want the number expanded base on?")
+            basei = int(base)
+            if len(prefixt) > 0:
+                assert max(prefixt) < basei
+            assert max(periodt) < basei
+            a,b = reduction(prefixt,periodt,basei)
+            print(a,b)
+        elif selection == 4:
+            navigator()
+            break
+        elif selection == 5:
+            exit()            
+
+def navigator():
+    notice = """
+    ********** M E N U **********
+    a.Run build-in test for period calculating function;
+    b.Run build-in test for nstep expansion generating function;
+    c.Use matplotlib to draw a Q;
+    d.Run build-in test for rational number lowest form expression finding function;
+    e.Check this out: this number can draw a X!
+    f.Play with the functions.
+    *****************************
+    """
+    print(notice)
+    selection = input("Please enter your choice, or enter anything else to exit.")
+    if selection == "a":
+        test_period_counter()
+        navigator()
+    elif selection == "b":
+        test_nstep_sequence()
+        navigator()
+    elif selection == "c":
+        draw_a_walk()
+        navigator()
+    elif selection == "d":
+        test_reduction()
+        navigator()
+    elif selection == "e":
+        draw_a_x()
+        navigator()
+    elif selection == "f":
+        interact()
+        navigator()
+    else : exit()
+
+def intro():
+    banner = """
+   ___  ___   __  __  ___   __ ____  ____  __    ___             _           _   
+  / __|/ _ \ |  \/  || _ \ / /|__  ||__ / /  \  | _ \ _ _  ___  (_) ___  __ | |_ 
+ | (__| (_) || |\/| ||  _// _ \ / /  |_ \| () | |  _/| '_|/ _ \ | |/ -_)/ _||  _|
+  \___|\___/ |_|  |_||_|  \___//_/  |___/ \__/  |_|  |_|  \___/_/ |\___|\__| \__|
+                                                              |__/               
+    WALK ON NUMBER
+    AUTHOR: ****** *** ID: ********
+    """
+    print(banner)
+    navigator()
+    
+if __name__ == "__main__":
+    intro()
